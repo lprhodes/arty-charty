@@ -19,7 +19,7 @@ class ArtyChartyBars extends Component {
             key={idx + 20000} 
             d={chartData.path}
             stroke={chart.lineColor || "rgba(255,255,255,.5)"}
-            strokeWidth={3}
+            strokeWidth={chart.lineWidth || 3}
             fill={new LinearGradient(
             this.makeGradStops(chart.maxValue, idx),
           0,
