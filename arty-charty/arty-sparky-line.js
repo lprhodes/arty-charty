@@ -52,7 +52,7 @@ class ArtySparkyLine extends Component {
             <Shape
                     d={this.makeLineChartPath()}
                     stroke={this.props.color || "black"}
-                    strokeWidth={1} />
+                    strokeWidth={2} />
         </Surface>
         </View>
     );

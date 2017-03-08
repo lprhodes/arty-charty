@@ -21,7 +21,7 @@ const SELCTED_MARKER_ANIMATION_DELAY_2 = SELCTED_MARKER_ANIMATION_DURATION * .3;
 const UNSELCTED_MARKER_ANIMATION_DURATION = 500;
 const UNSELCTED_MARKER_ANIMATION_DELAY_1 = UNSELCTED_MARKER_ANIMATION_DURATION * .2;
 const UNSELCTED_MARKER_ANIMATION_DELAY_2 = UNSELCTED_MARKER_ANIMATION_DURATION * .3;
-const MARKER_RADIUS = 15;
+const MARKER_RADIUS = 8;
 const MARKER_RADIUS_2 = MARKER_RADIUS * .75;
 const MARKER_RADIUS_3 = MARKER_RADIUS * .5;
 const MARKER_RADIUS_SQUARED = Math.pow(MARKER_RADIUS, 2);
@@ -34,12 +34,18 @@ const spring3 = new Spring({friction: 300, frequency: 600});
 class AmimatedCirclesMarker extends Component {
   constructor(props) {
     super(props);
+
+    const { active } = this.props
+
+    this.active = active;
+
     this.state = {
         r1: 0,
-        r2: 0,
+        r2: active ? 1 : 0,
         r3: 0
     };
-    this.active = this.props.active;
+
+    console.log('active', active)
     this.tweenerStartAnimation = new Tweener(START_ANIMATION_DURATION, t => {
           this.setState({
               r1: t,
@@ -85,23 +91,24 @@ class AmimatedCirclesMarker extends Component {
   }
 
   _playStartAnimation() {
-    this.tweenerStartAnimation.resetAndPlay();
+    // this.tweenerStartAnimation.resetAndPlay();
   }
 
   _playActiveAnimation() {
-    this.tweenerActiveAnimation.resetAndPlay();
+    // this.tweenerActiveAnimation.resetAndPlay();
+    this.setState({ r2: 1 })
   }
 
   _playInactiveAnimation() {
-    this.tweenerInactiveAnimation.resetAndPlay();
+    // this.tweenerInactiveAnimation.resetAndPlay();
+    this.setState({ r2: 0 })
   }
 
   _makeMarker(cx, cy) {
     return (
       <Group>
-        <Shape d={makeCircle(cx, cy, this.state.r3 * MARKER_RADIUS)} fill={lightenColor(this.props.baseColor, .3) || 'rgba(0,255,0,.75)'}/>
         <Shape style={styles.circle2} d={makeCircle(cx, cy, this.state.r2 * MARKER_RADIUS_2)} fill={lightenColor(this.props.baseColor, .1) || 'rgba(0,0,255,.75)'}/>
-        <Shape style={styles.circle3} d={makeCircle(cx, cy, this.state.r1 * MARKER_RADIUS_3)} fill={this.props.baseColor || 'rgba(255,0,0,.75)'}/>
+        <Shape style={styles.circle3} d={makeCircle(cx, cy, 1 * MARKER_RADIUS_3)} fill={this.props.baseColor || 'rgba(255,0,0,.75)'}/>
       </Group>
     );
   }
@@ -113,7 +120,7 @@ class AmimatedCirclesMarker extends Component {
 
 const styles = StyleSheet.create({
   circle2: {
-    opacity: .5
+    opacity: .75
   },
   circle3: {
     opacity: .25

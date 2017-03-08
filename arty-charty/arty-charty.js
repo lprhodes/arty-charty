@@ -21,19 +21,19 @@ const SELCTED_MARKER_ANIMATION_DELAY_2 = SELCTED_MARKER_ANIMATION_DURATION * .3;
 const UNSELCTED_MARKER_ANIMATION_DURATION = 500;
 const UNSELCTED_MARKER_ANIMATION_DELAY_1 = UNSELCTED_MARKER_ANIMATION_DURATION * .2;
 const UNSELCTED_MARKER_ANIMATION_DELAY_2 = UNSELCTED_MARKER_ANIMATION_DURATION * .3;
-const MARKER_RADIUS = 15;
+const MARKER_RADIUS = 8;
 const MARKER_RADIUS_2 = MARKER_RADIUS * .75;
 const MARKER_RADIUS_3 = MARKER_RADIUS * .5;
-const MARKER_RADIUS_SQUARED = Math.pow(MARKER_RADIUS, 2);
+const MARKER_RADIUS_SQUARED = Math.pow(MARKER_RADIUS, 3);
 
-const PAD_LEFT = 10;
+const PAD_LEFT = 0;
 
 const SHOW_CLICKS = false;
 
 const CHART_GROW_ANIMATION_DURATION = 2000;
 const CLICK_FEDDBACK_ANIMATION_DURATION = 500;
 
-const CHART_HEIGHT = 250;
+const CHART_HEIGHT = 125;
 const CHART_HEIGHT_OFFSET = CHART_HEIGHT / 2;
 
 const DEFAULT_LINE_COLOR = 'rgba(255,255,255,.5)';
@@ -41,15 +41,15 @@ const DEFAULT_LINE_COLOR = 'rgba(255,255,255,.5)';
 class ArtyCharty extends Component {
   constructor(props) {
     super(props);
-    this.resetState();
+    this.resetState(props.activeMarker || {});
   }
 
-  resetState () {
+  resetState (activeMarker = {}) {
     this.state = {
       trX: 0,
       t: this.props.animated ? 0 : 1,
       gradientStops: {},
-      activeMarker: {},
+      activeMarker,
       clickFeedback: {
         x: 0,
         y: 0,
@@ -81,7 +81,7 @@ class ArtyCharty extends Component {
 
     if (this.props.clickFeedback) {
       this.animateClickFeedbackTweener = new Tweener(CLICK_FEDDBACK_ANIMATION_DURATION, t => {
-            this.setState(Object.assign(this.state, 
+            this.setState(Object.assign(this.state,
                 Object.assign(this.state.clickFeedback, {
                   o: 1 - t,
                   r: 100 * t
@@ -89,7 +89,7 @@ class ArtyCharty extends Component {
           ));
       }, EasingFunctions.easeOutCubic, false);
     }
-    
+
     // Only call if lowHighCol stuff?????
     this.makeChartFillColors();
   }
@@ -199,16 +199,16 @@ class ArtyCharty extends Component {
         moved = false;
       },
       onPanResponderMove: this.props.noScroll ? ()=>{} : (evt, gestureState) => {
-        this.setState(Object.assign(this.state, {
-          trX: Math.min(20, Math.max(sX + gestureState.dx, -this.maxScroll - 20))
-        }));
+        // this.setState(Object.assign(this.state, {
+        //   trX: Math.min(20, Math.max(sX + gestureState.dx, -this.maxScroll - 20))
+        // }));
         moved = true;
       },
       onPanResponderTerminationRequest: (evt, gestureState) => true,
       onPanResponderRelease: (evt, gestureState) => {
         let tmpX = gestureState.x0;
         let tmpY = gestureState.y0;
-        if (!moved) {
+        // if (!moved) {
           this
             .refs
             .chart
@@ -244,7 +244,7 @@ class ArtyCharty extends Component {
                 }
               });
             });
-        }
+        // }
       },
       onPanResponderTerminate: (evt, gestureState) => {},
       onShouldBlockNativeResponder: (evt, gestureState) => {
@@ -256,7 +256,7 @@ class ArtyCharty extends Component {
 componentWillReceiveProps(nextProps) {
   if (this.props.data !== nextProps.data || this.props.pointsOnScreen !== nextProps.pointsOnScreen) {
     this.props = nextProps;
-    this.resetState();
+    this.resetState(nextProps.activeMarker);
     this.init();
     // Uncoment if statement to only restart animation
     // if it isn't already playing when switching charts
@@ -269,8 +269,8 @@ componentWillReceiveProps(nextProps) {
 }
 
   componentWillUnmount() {
-    this.animateClickFeedbackTweener.stop();
-    this.animateChartTweener.stop();
+    if (this.animateClickFeedbackTweener) this.animateClickFeedbackTweener.stop();
+    if (this.animateChartTweener) this.animateChartTweener.stop();
   }
 
   onMarkerClick(chartIdx, pointIdx) {
@@ -305,7 +305,7 @@ componentWillReceiveProps(nextProps) {
       .data[chartIdx].data
       .forEach((d, idx) => {
         let fillColors = d.fillColors ? d.fillColors : {active: 'white', inactive: 'gray'};
-        let color = this.state.activeMarker.chartIdx === chartIdx && this.state.activeMarker.pointIdx === idx ? fillColors.active : fillColors.inactive;
+        let color = fillColors.inactive;
         gradStops[(idx / this.props.data[chartIdx].data.length) + (.5 / this.props.data[chartIdx].data.length)] = color;
       });
       return gradStops;
@@ -315,21 +315,22 @@ makeMarkersCoords(chart, width, t) {
   let markerCords = [];
   let xCord;
   let yCord;
-  let heightScaler = (CHART_HEIGHT-MARKER_RADIUS)/this.maxValue;
-  let xSpacing = width / this.pointsOnScreen;
-  let centeriser = xSpacing / 2 - MARKER_RADIUS;
-  let fullWidth = xSpacing*(chart.data.length-1) + centeriser;
+  const difference = (this.maxValue - this.minValue)
+  let heightScaler = (CHART_HEIGHT-((MARKER_RADIUS * 0.75) * 2))/ (difference + (difference / 5));
+  let xSpacing = (width - ((MARKER_RADIUS * 0.75) * 2)) / (this.pointsOnScreen - 1);
+  let fullWidth = width
+
   chart.data.forEach((d,idx) => {
-    let spacing = idx*xSpacing + centeriser;
+    let spacing = idx*xSpacing;
     if (spacing > fullWidth * t && chart.drawChart) {
           return true;
         }
     if (chart.stretchChart) {
-      xCord = t * (spacing + MARKER_RADIUS); 
+      xCord = t * (spacing + MARKER_RADIUS);
     } else {
-      xCord = spacing + MARKER_RADIUS;
+      Math.floor(xCord = spacing + (MARKER_RADIUS * 0.75));
     }
-    yCord = (CHART_HEIGHT+CHART_HEIGHT_OFFSET) - d.value * heightScaler  * (chart.timingFunctions ? chart.timingFunctions[idx % chart.timingFunctions.length](t) : 1);
+    yCord = (CHART_HEIGHT+CHART_HEIGHT_OFFSET) - ((d.value - (this.minValue - (difference / 10))) * heightScaler)
     markerCords.push({x: xCord, y: yCord});
   });
   return markerCords;
@@ -349,18 +350,21 @@ makeMarker(cx, cy, chartIdx, pointIdx) {
   }
 
 makeYaxis(num, minVal, maxVal) {
-  let topY = (CHART_HEIGHT+CHART_HEIGHT_OFFSET) - this.maxValue * ((CHART_HEIGHT-MARKER_RADIUS)/this.maxValue);
-  let bottomY = CHART_HEIGHT+CHART_HEIGHT/2;
+  let topY = (CHART_HEIGHT+CHART_HEIGHT_OFFSET) - this.maxValue * ((CHART_HEIGHT-MARKER_RADIUS)/this.maxValue) - MARKER_RADIUS - 2;
+  let bottomY = CHART_HEIGHT+CHART_HEIGHT/2 - MARKER_RADIUS - 2;
   let i;
   let interval = (bottomY - topY) / num;
   let lineVal = this.maxValue;
   let lineDecrement = (maxVal - minVal) / num;
   let lines = [];
-  for (i = 0 ; i <= num; i++) {
-    lines.push(<Shape key={i} strokeDash={[0, 0, 4, 6]} stroke="black" strokeWidth={.5}  d={`M 0 ${topY + interval * i} H ${Dimensions.get('window').width}`} />);
-    lines.push(<ART.Text key={1000+i} fill="black" stroke="white" strokeWidth={1} x={0} y={(topY + interval * i) - 22} font="20px Arial">{lineVal.toFixed(2)}</ART.Text>);
+  for (i = 1 ; i <= num; i++) {
+    lines.push(<Shape key={i} stroke={GlobalStyles.separatorColor} strokeWidth={GlobalStyles.borderWidth}  d={`M ${MARKER_RADIUS / 2} ${Math.floor(topY + interval * i)} H ${(this.props.width || Dimensions.get('window').width) - (MARKER_RADIUS / 2)}`} />);
+    // lines.push(<ART.Text key={1000+i} fill="black" x={0} y={(topY + interval * i) - 22} font="12px Ubuntu">{lineVal.toFixed(2)}</ART.Text>);
     lineVal -= lineDecrement;
   }
+
+  lines.push(<Shape key={num + 1} stroke={GlobalStyles.separatorColor} strokeWidth={GlobalStyles.borderWidth}  d={`M ${Math.floor(MARKER_RADIUS / 2)} ${topY + (MARKER_RADIUS / 2)} V ${(CHART_HEIGHT * 2) - MARKER_RADIUS - (MARKER_RADIUS / 2)}`} />);
+
   return lines;
 }
 
@@ -386,7 +390,7 @@ makeLinearGradientForAreaChart(chart, idx, width) {
 }
 
   render() {
-    let width = Dimensions.get('window').width;
+    let width = this.props.width || Dimensions.get('window').width;
      let charts = this.props.data.map((chart, idx) =>  {
        let chartData;
        let charts = [];
@@ -423,10 +427,10 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             chartData = makeLineChartPath(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen);
             this.maxScroll = Math.max(this.maxScroll, chartData.maxScroll || 0);
             charts.push(<Shape
-                  key={idx + 10000} 
+                  key={idx + 10000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
-                  strokeWidth={3} />);
+                  strokeWidth={2} />);
             // Make marker coords:
             markerCords = this.makeMarkersCoords(chart, width, this.state.t);
             chart.markerCords = markerCords;
@@ -436,15 +440,15 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             chartData = makeLineStepChartPath(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen);
             this.maxScroll = Math.max(this.maxScroll, chartData.maxScroll || 0);
             charts.push(<Shape
-                  key={idx + 10000} 
+                  key={idx + 10000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
                   strokeWidth={3} />);
             break;
           case 'spline-area':
-            chartData = makeSplineChartPath(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, true);
+            chartData = makeSplineChartPath(chart, width, this.state.t, this.minValue, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, true);
               charts.push(<Shape
-                  key={idx + 30000} 
+                  key={idx + 30000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
                   strokeWidth={0}
@@ -458,13 +462,13 @@ makeLinearGradientForAreaChart(chart, idx, width) {
               break;
             }
           case 'spline':
-            chartData = makeSplineChartPath(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, false);
-            this.maxScroll = Math.max(this.maxScroll, chartData.maxScroll || 0);
+            chartData = makeSplineChartPath(chart, width, this.state.t, this.minValue, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, false);
+            this.maxScroll = 0 //Math.max(this.maxScroll, chartData.maxScroll || 0);
             charts.push(<Shape
-                  key={idx + 10000} 
+                  key={idx + 10000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
-                  strokeWidth={3}
+                  strokeWidth={2}
                    />);
             // Make marker coords:
             if (makeMarkers) {
@@ -480,7 +484,7 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             chart.barCords = chartData.barCords;
             this.maxScroll = Math.max(this.maxScroll, chartData.maxScroll || 0);
             charts.push(<Shape
-                  key={idx + 20000} 
+                  key={idx + 20000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
                   strokeWidth={3}
@@ -490,7 +494,7 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             chartData = makeStackedBarsChartPath(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, PAD_LEFT, this.props.yAxisLeft.width, true);
             chart.barCords = chartData.barCords;
             chartData.path.forEach((d, idx2) => {
-              charts.push(<Shape key={idx2 + 20000} 
+              charts.push(<Shape key={idx2 + 20000}
                   d={d.path}
                   fill={d.color}
                   stroke="red"
@@ -502,18 +506,18 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             chart.barCords = chartData.barCords;
             chartData.path.forEach((d, idx2) => {
               let isActive = idx === this.state.activeMarker.chartIdx && d.pointIdx === this.state.activeMarker.pointIdx;
-              charts.push(<Group key={idx2 + 290000} opacity={isActive ? 1 : .75}>
-                <Shape 
+              charts.push(<Group key={idx2 + 290000} opacity={1}>
+                <Shape
                   d={d.main}
                   fill={d.mainColor}
                   stroke={complement(d.mainColor)}
                   strokeWidth={isActive ? 5 : 0} />
-                  <Shape 
+                  <Shape
                   d={d.side}
                   fill={d.sideColor}
                   stroke={complement(d.sideColor)}
                   strokeWidth={isActive ? 5 : 0} />
-                  <Shape 
+                  <Shape
                   d={d.top}
                   fill={d.topColor}
                   stroke={complement(d.topColor)}
@@ -521,14 +525,14 @@ makeLinearGradientForAreaChart(chart, idx, width) {
                   </Group>
                   );
             });
-            
+
             break;
           case 'candlestick':
           chartData = makeCandlestickChart(chart, width, this.state.t, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, PAD_LEFT);
           chart.barCords = chartData.barCords;
           chartData.paths.forEach((d, idx2) => {
             charts.push(<Shape
-                  key={idx2 + 80000} 
+                  key={idx2 + 80000}
                   d={d.pathStr}
                   stroke={chart.lineColor}
                   strokeWidth={idx === this.state.activeMarker.chartIdx && idx2 === this.state.activeMarker.pointIdx ? 3 : 1}
@@ -537,6 +541,8 @@ makeLinearGradientForAreaChart(chart, idx, width) {
        }
        return charts;
      });
+
+
     return (
       <View>
         <View style={[styles.container, {
@@ -545,10 +551,10 @@ makeLinearGradientForAreaChart(chart, idx, width) {
         }, this.props.style]}
         ref="chart" >
           <Surface width={this.maxScroll + width} height={CHART_HEIGHT+CHART_HEIGHT/2}
-          style={styles.chartSurface}>
-          {charts}
-          <Shape d={makeCircle(this.state.clickFeedback.x, this.state.clickFeedback.y, this.state.clickFeedback.r)} fill={`rgba(255,255,255, ${this.state.clickFeedback.o})`} />
-        </Surface>
+            style={styles.chartSurface}>
+            {charts}
+            <Shape d={makeCircle(this.state.clickFeedback.x, this.state.clickFeedback.y, this.state.clickFeedback.r)} fill={`rgba(255,255,255, ${this.state.clickFeedback.o})`} />
+          </Surface>
         </View>
         <View {...this._panResponder.panHandlers} style={styles.axesContainer}>
           <Surface width={this.maxScroll + width} height={CHART_HEIGHT+CHART_HEIGHT/2}
@@ -563,9 +569,7 @@ makeLinearGradientForAreaChart(chart, idx, width) {
 
 const styles = StyleSheet.create({
   container: {
-          overflow: 'visible',
-          marginTop: 10,
-          marginBottom: 10
+    overflow: 'visible',
   },
   chartSurface: {
     backgroundColor: 'rgba(0,0,0,0)',

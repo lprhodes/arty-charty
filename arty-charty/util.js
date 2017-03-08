@@ -171,12 +171,12 @@ function makeArc(x, y, radius, startAngle, endAngle, closePath){
 
     let start = polarToCartesian(x, y, radius, endAngle);
     var end = polarToCartesian(x, y, radius, startAngle);
-  
+
 
     let largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
 
     let d = [
-        "M", start.x, start.y, 
+        "M", start.x, start.y,
         "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y];
   if (closePath) {
     d.push('L');
@@ -184,7 +184,7 @@ function makeArc(x, y, radius, startAngle, endAngle, closePath){
     d.push(y);
     d.push('Z');
   }
-    return d.join(" ");    
+    return d.join(" ");
 }
 
 function makeSpline(x,y,px1,py1,px2,py2,x2,y2)
@@ -205,19 +205,19 @@ function computeSplineControlPoints(K)
 	p1=[];
 	p2=[];
 	n = K.length-1;
-	
+
 	/*rhs vector*/
 	a=[];
 	b=[];
 	c=[];
 	r=[];
-	
+
 	/*left most segment*/
 	a[0]=0;
 	b[0]=2;
 	c[0]=1;
 	r[0] = K[0]+2*K[1];
-	
+
 	/*internal segments*/
 	for (i = 1; i < n - 1; i++)
 	{
@@ -226,13 +226,13 @@ function computeSplineControlPoints(K)
 		c[i]=1;
 		r[i] = 4 * K[i] + 2 * K[i+1];
 	}
-			
+
 	/*right segment*/
 	a[n-1]=2;
 	b[n-1]=7;
 	c[n-1]=0;
 	r[n-1] = 8*K[n-1]+K[n];
-	
+
 	/*solves Ax=b with the Thomas algorithm (from Wikipedia)*/
 	for (i = 1; i < n; i++)
 	{
@@ -240,26 +240,26 @@ function computeSplineControlPoints(K)
 		b[i] = b[i] - m * c[i - 1];
 		r[i] = r[i] - m*r[i-1];
 	}
- 
+
 	p1[n-1] = r[n-1]/b[n-1];
 	for (i = n - 2; i >= 0; --i)
 		p1[i] = (r[i] - c[i] * p1[i+1]) / b[i];
-		
+
 	/*we have p1, now compute p2*/
 	for (i=0;i<n-1;i++)
 		p2[i]=2*K[i+1]-p1[i+1];
-	
+
 	p2[n-1]=0.5*(K[n]+p1[n-1]);
-	
+
 	return {p1:p1, p2:p2};
 }
 
 /**
    * Generate the SVG path for a bar chart.
-   * 
+   *
    * @param  {object}  chart             The chart object
    * @param  {number}  width             Width of the chart in pixels
-   * @param  {number}  t                 Scale parameter (range: 0-1), used for 
+   * @param  {number}  t                 Scale parameter (range: 0-1), used for
    *                                     animating the graph
    * @param  {number}  maxValue          The maximum value of chart data
    * @param  {number}  chartHeight       Height of the chart in pixels
@@ -465,11 +465,11 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
    */
   function makeXcord(chart, fullWidth, t, spacing, markerRadius) {
     if (chart.drawChart) {
-          return Math.min(fullWidth * t, spacing + markerRadius);
+          return Math.min(fullWidth * t, spacing + (markerRadius / 2));
         } else if (chart.stretchChart) {
           return t * (spacing + markerRadius);
         } else {
-          return spacing + markerRadius;
+          return spacing + (markerRadius *0.75);
         }
   }
 
@@ -493,10 +493,10 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
 
   /**
    * Generate the SVG path for a line or area chart.
-   * 
+   *
    * @param  {object}  chart             The chart object
    * @param  {number}  width             Width of the chart in pixels
-   * @param  {number}  t                 Scale parameter (range: 0-1), used for 
+   * @param  {number}  t                 Scale parameter (range: 0-1), used for
    *                                     animating the graph
    * @param  {number}  maxValue          The maximum value of chart data
    * @param  {number}  chartHeight       Height of the chart in pixels
@@ -522,7 +522,7 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
     if (isRange) {
       lineStrArray.push('M');
       lineStrArray.push(makeXcord(chart, fullWidth, t, centeriser, markerRadius));
-      lineStrArray.push((chartHeight+chartHeightOffset) - chart.data[0].value * heightScaler  * (chart.timingFunctions ? chart.timingFunctions[0 % chart.timingFunctions.length](t) : 1)); 
+      lineStrArray.push((chartHeight+chartHeightOffset) - chart.data[0].value * heightScaler  * (chart.timingFunctions ? chart.timingFunctions[0 % chart.timingFunctions.length](t) : 1));
     }
     let xCord;
     let lowCords = [];
@@ -590,11 +590,11 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
   }
 
   /**
-   * Generate the SVG path for a spline or spline-area chart.
-   * 
+       * Generate the SVG path for a spline or spline-area chart.
+   *
    * @param  {object}  chart             The chart object
    * @param  {number}  width             Width of the chart in pixels
-   * @param  {number}  t                 Scale parameter (range: 0-1), used for 
+   * @param  {number}  t                 Scale parameter (range: 0-1), used for
    *                                     animating the graph
    * @param  {number}  maxValue          The maximum value of chart data
    * @param  {number}  chartHeight       Height of the chart in pixels
@@ -610,23 +610,26 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
    * @param  {boolean} closePath         Wether to close the spline (make it an
    *                                     area chart) or not.
    */
-  function makeSplineChartPath(chart, width, t, maxValue, chartHeight, chartHeightOffset, markerRadius, pointsOnScreen, closePath) {
-    let heightScaler = (chartHeight-markerRadius)/maxValue;
-    let xSpacing = width / pointsOnScreen;
-    let centeriser = xSpacing / 2 - markerRadius;
-    let fullWidth = xSpacing*(chart.data.length-1) + markerRadius + centeriser;
+  function makeSplineChartPath(chart, width, t, minValue, maxValue, chartHeight, chartHeightOffset, markerRadius, pointsOnScreen, closePath) {
+    const difference = (maxValue - minValue)
+    let heightScaler = (chartHeight-((markerRadius * 0.75) * 2))/ (difference + (difference / 5));
+    let xSpacing = (width - (markerRadius * 0.75) * 2) / (pointsOnScreen - 1);
+    let fullWidth = width
 
     let xCord;
     let xCords = [];
     let yCords = [];
     chart.data.forEach((d, idx) => {
-        let spacing = idx*xSpacing + centeriser;
+        let spacing = idx*xSpacing;
+
         if (spacing > fullWidth * t && chart.drawChart) {
           return true;
         }
-        xCord = makeXcord(chart, fullWidth, t, spacing, markerRadius);
+        xCord = Math.floor(makeXcord(chart, fullWidth, t, spacing, markerRadius));
         xCords.push(xCord);
-        yCords.push((chartHeight+chartHeightOffset) - d.value * heightScaler  * (chart.timingFunctions ? chart.timingFunctions[idx % chart.timingFunctions.length](t) : 1));
+
+        const yCord = (chartHeight+chartHeightOffset) - ((d.value - (minValue - (difference / 10))) * heightScaler)
+        yCords.push(yCord);
     });
     let px = computeSplineControlPoints(xCords);
 	  let py = computeSplineControlPoints(yCords);
@@ -640,7 +643,7 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
     return {
       path: splines.join(','),
       width: xCords.slice(-1) + markerRadius,
-      maxScroll: fullWidth - xSpacing + markerRadius
+      maxScroll: fullWidth
     };
   }
 
@@ -654,7 +657,7 @@ function makeBarsChartPath(chart, width, t, maxValue, chartHeight, chartHeightOf
 /**
  * Compute the RGB component value for the provided
  * HSL parameters.
- * 
+ *
  * @param  {number}  p  lumanence and saturation parameter 1
  * @param  {number}  q  lumanence and saturation parameter 2
  * @param  {number}  t  The hue value
@@ -678,7 +681,7 @@ function hue2rgb(p, q, t){
  * @param   {number}  s       The saturation
  * @param   {number}  l       The lightness
  * @return  {Array}           The RGB representation
- * 
+ *
  * (From:
  *  http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion)
  */
@@ -710,7 +713,7 @@ function hslaToRgba(h, s, l, a) {
  * @param   {number}  g       The green color value
  * @param   {number}  b       The blue color value
  * @return  {Array}           The HSL representation
- * 
+ *
  * (From:
  *  http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion)
  */
@@ -1067,13 +1070,13 @@ function getMinMaxValuesCandlestick(arr) {
 
   function  computeChartSum(chart) {
     return computeArrayValueSum(chart.data);
-    // return chart.data.reduce((a,b) => { 
+    // return chart.data.reduce((a,b) => {
     //   return a + b.value;
     // },0);
   }
 
   function  computeArrayValueSum(arr) {
-    return arr.reduce((a,b) => { 
+    return arr.reduce((a,b) => {
       return a + b.value;
     },0);
   }
@@ -1119,7 +1122,7 @@ function getMinMaxValuesCandlestick(arr) {
     return closestIdx;
   }
 
-export { 
+export {
   polarToCartesian,
   makeArc,
   inerpolateColors,
