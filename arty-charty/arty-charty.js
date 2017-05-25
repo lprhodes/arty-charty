@@ -5,6 +5,7 @@ import {
   Dimensions,
   Image,
   PanResponder,
+  Platform,
   StyleSheet,
   Text,
   View,
@@ -447,12 +448,14 @@ makeLinearGradientForAreaChart(chart, idx, width) {
             break;
           case 'spline-area':
             chartData = makeSplineChartPath(chart, width, this.state.t, this.minValue, this.maxValue, CHART_HEIGHT, CHART_HEIGHT_OFFSET, MARKER_RADIUS, this.pointsOnScreen, true);
+
+              const fill = Platform.OS === 'ios' ? this.makeLinearGradientForAreaChart(chart, idx, chartData.width) : null
               charts.push(<Shape
                   key={idx + 30000}
                   d={chartData.path}
                   stroke={chart.lineColor || DEFAULT_LINE_COLOR}
                   strokeWidth={0}
-                  fill={this.makeLinearGradientForAreaChart(chart, idx, chartData.width)} />);
+                  fill={fill} />);
             if (chart.hideLine) {
               // Make marker coords:
               markerCords = this.makeMarkersCoords(chart, width, this.state.t);
